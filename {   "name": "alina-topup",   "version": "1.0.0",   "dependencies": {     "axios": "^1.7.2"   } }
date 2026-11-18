@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALINA TOPUP | Instant Top-Up</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0b0f19] text-white font-sans min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-[#111827] border-b border-gray-800 px-4 py-3 flex justify-between items-center sticky top-0 z-50">
+    <h1 class="text-xl font-extrabold tracking-wider text-amber-400">ALINA TOPUP</h1>
+    <a href="/admin" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-gray-300">Admin</a>
+  </nav>
+
+  <main class="max-w-xl mx-auto p-4 space-y-6">
+
+    <!-- Step 1: Player Details -->
+    <section class="bg-[#111827] p-5 rounded-2xl border border-gray-800 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-black font-bold w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+        <h2 class="font-bold text-lg">Enter Player Details</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="uid" type="number" placeholder="User ID (e.g. 12345678)" class="bg-[#1f2937] border border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400" />
+        <input id="zone" type="number" placeholder="Zone ID (e.g. 1234)" class="bg-[#1f2937] border border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400" />
+      </div>
+      <button onclick="verifyPlayer()" id="verifyBtn" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 rounded-xl text-sm transition">
+        Check Player ID
+      </button>
+      <div id="ignBox" class="hidden bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-xl text-sm font-medium"></div>
+    </section>
+
+    <!-- Step 2: Select Diamond Pack -->
+    <section class="bg-[#111827] p-5 rounded-2xl border border-gray-800 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-black font-bold w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+        <h2 class="font-bold text-lg">Select Recharge Pack</h2>
+      </div>
+      <div id="packList" class="grid grid-cols-2 gap-3">
+        <!-- Packs rendered via JS -->
+      </div>
+    </section>
+
+    <!-- Step 3: Checkout -->
+    <section class="bg-[#111827] p-5 rounded-2xl border border-gray-800 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-black font-bold w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+        <h2 class="font-bold text-lg">Confirm & Pay</h2>
+      </div>
+      <input id="whatsapp" type="tel" placeholder="WhatsApp Number (for receipt)" class="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400" />
+      <div class="flex justify-between text-sm text-gray-400">
+        <span>Total Payable:</span>
+        <span id="totalPrice" class="text-xl font-extrabold text-amber-400">₹0</span>
+      </div>
+      <button onclick="placeOrder()" id="buyBtn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-black font-extrabold py-3 rounded-xl text-base transition">
+        Buy Now (Instant Top-Up)
+      </button>
+      <div id="orderStatus" class="hidden text-center text-sm p-3 rounded-xl"></div>
+    </section>
+
+  </main>
+
+  <script>
+    const packs = [
+      { id: "weekly_pass", name: "Weekly Diamond Pass", price: 145 },
+      { id: "mlbb_86", name: "86 Diamonds", price: 115 },
+      { id: "mlbb_172", name: "172 Diamonds", price: 225 },
+      { id: "mlbb_257", name: "257 Diamonds", price: 335 },
+      { id: "mlbb_706", name: "706 Diamonds", price: 890 },
+      { id: "twilight_pass", name: "Twilight Pass", price: 720 }
+    ];
+
+    let selectedPack = null;
+    let verifiedIGN = "";
+
+    const packContainer = document.getElementById("packList");
+    packs.forEach(p => {
+      const btn = document.createElement("button");
+      btn.className = "pack-card text-left bg-[#1f2937] border border-gray-700 hover:border-amber-400 p-3.5 rounded-xl transition";
+      btn.innerHTML = `<div class="font-bold text-sm text-white">${p.name}</div><div class="text-amber-400 font-extrabold mt-1">₹${p.price}</div>`;
+      btn.onclick = () => {
+        document.querySelectorAll(".pack-card").forEach(c => c.classList.remove("border-amber-400", "bg-amber-500/10"));
+        btn.classList.add("border-amber-400", "bg-amber-500/10");
+        selectedPack = p;
+        document.getElementById("totalPrice").innerText = "₹" + p.price;
+      };
+      packContainer.appendChild(btn);
+    });
+
+    async function verifyPlayer() {
+      const uid = document.getElementById("uid").value;
+      const zone = document.getElementById("zone").value;
+      const ignBox = document.getElementById("ignBox");
+      if (!uid || !zone) return alert("UID ar Zone ID din!");
+
+      document.getElementById("verifyBtn").innerText = "Checking...";
+      const res = await fetch(`/api/check-id?uid=${uid}&zone=${zone}`);
+      const data = await res.json();
+      document.getElementById("verifyBtn").innerText = "Check Player ID";
+
+      ignBox.classList.remove("hidden");
+      if (data.success) {
+        verifiedIGN = data.ign;
+        ignBox.innerText = `✓ Player Found: ${data.ign}`;
+      } else {
+        verifiedIGN = "";
+        ignBox.innerText = "✗ Invalid User ID or Zone ID";
+      }
+    }
+
+    async function placeOrder() {
+      const uid = document.getElementById("uid").value;
+      const zone = document.getElementById("zone").value;
+      const whatsapp = document.getElementById("whatsapp").value;
+      const statusBox = document.getElementById("orderStatus");
+
+      if (!verifiedIGN) return alert("Age Player ID verify korun!");
+      if (!selectedPack) return alert("Ekta pack select korun!");
+
+      document.getElementById("buyBtn").innerText = "Processing Order...";
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, zone, ign: verifiedIGN, pack: selectedPack, whatsapp })
+      });
+      const data = await res.json();
+      document.getElementById("buyBtn").innerText = "Buy Now (Instant Top-Up)";
+
+      statusBox.classList.remove("hidden");
+      if (data.success) {
+        statusBox.className = "text-center text-sm
