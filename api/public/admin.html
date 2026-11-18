@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | ALINA TOPUP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0b0f19] text-white font-sans min-h-screen flex items-center justify-center p-4">
+
+  <!-- Login Screen -->
+  <div id="loginBox" class="bg-[#111827] border border-gray-800 p-6 rounded-2xl w-full max-w-sm space-y-4">
+    <h2 class="text-xl font-extrabold text-amber-400 text-center">ALINA TOPUP ADMIN</h2>
+    <input id="adminPass" type="password" placeholder="Enter Admin Password" class="w-full bg-[#1f2937] border border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400" />
+    <button onclick="loginAdmin()" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 rounded-xl text-sm">
+      Unlock Dashboard
+    </button>
+    <p id="loginErr" class="text-red-400 text-xs text-center hidden">Wrong Password!</p>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboardBox" class="hidden w-full max-w-3xl space-y-6">
+    <div class="flex justify-between items-center bg-[#111827] p-4 rounded-2xl border border-gray-800">
+      <h1 class="font-extrabold text-lg text-amber-400">ALINA TOPUP CONTROL PANEL</h1>
+      <button onclick="logout()" class="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg">Logout</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-[#111827] p-4 rounded-2xl border border-gray-800">
+        <div class="text-xs text-gray-400">API Connection</div>
+        <div id="apiHealth" class="text-lg font-bold text-emerald-400 mt-1">Active & Connected</div>
+      </div>
+      <div class="bg-[#111827] p-4 rounded-2xl border border-gray-800">
+        <div class="text-xs text-gray-400">Reseller API Balance</div>
+        <div id="apiBalance" class="text-lg font-bold text-amber-400 mt-1">Loading...</div>
+      </div>
+    </div>
+
+    <div class="bg-[#111827] p-5 rounded-2xl border border-gray-800 space-y-3">
+      <h3 class="font-bold text-base">Quick Manual Order Push</h3>
+      <div class="grid grid-cols-3 gap-2">
+        <input id="mUid" placeholder="Player UID" class="bg-[#1f2937] border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+        <input id="mZone" placeholder="Zone ID" class="bg-[#1f2937] border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+        <input id="mPack" placeholder="Product ID (e.g. weekly_pass)" class="bg-[#1f2937] border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <button onclick="manualPush()" class="bg-emerald-500 text-black font-bold px-4 py-2 rounded-lg text-sm">Send Diamonds Now</button>
+      <div id="pushMsg" class="text-xs text-amber-300"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loginAdmin() {
+      const password = document.getElementById("adminPass").value;
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "login", password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        sessionStorage.setItem("alina_admin_token", password);
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("dashboardBox").classList.remove("hidden");
+        document.getElementById("apiBalance").innerText = data.balance || "Check API Docs";
+      } else {
+        document.getElementById("loginErr").classList.remove("hidden");
+      }
+    }
+
+    async function manualPush() {
+      const password = sessionStorage.getItem("alina_admin_token");
+      const uid = document.getElementById("mUid").value;
+      const zone = document.getElementById("mZone").value;
+      const packId = document.getElementById("mPack").value;
+
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "manual_order", password, uid, zone, packId })
+      });
+      const data = await res.json();
+      document.getElementById("pushMsg").innerText = data.message;
+    }
+
+    function logout() {
+      sessionStorage.removeItem("alina_admin_token");
+      location.reload();
+    }
+  </script>
+</body>
+</html>
